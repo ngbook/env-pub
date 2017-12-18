@@ -163,8 +163,11 @@ gulp.task('qa:upload-assets', ['upload-assets']);
 const pathPrefix = newConf.cdnUrl + newConf.uploadPath + version + '/';
 gulp.task('replaceHtml', function () {
     return gulp.src('./dist/*.html')
+        // 替换 assets 资源
         .pipe(replace('/assets/', assetsPrefix + 'assets/'))
+        // 替换 css 资源
         .pipe(replace('<link href="', '<link href="' + pathPrefix))
+        // 替换 js 资源
         .pipe(replace('<script type="text/javascript" src="', '<script type="text/javascript" src="' + pathPrefix))
         // 替换 base
         .pipe(replace('<base href="/">',
@@ -174,8 +177,9 @@ gulp.task('replaceHtml', function () {
 // 替换资源文件的路径
 gulp.task('replaceAssets', function () {
     return gulp.src('./dist/*.js')
-        // 替换引号里的 assets 引用
+        // 替换双引号里的 assets 引用
         .pipe(replace('"/assets/', '"' + assetsPrefix + 'assets/'))
+        // 替换单引号里的 assets 引用
         .pipe(replace('\'/assets/', '\'' + assetsPrefix + 'assets/'))
         // 替换背景图里的资源路径
         .pipe(replace('url(/assets/', 'url(' + assetsPrefix + 'assets/'))
