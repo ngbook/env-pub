@@ -27,7 +27,7 @@ const argv = require('yargs').argv;
 
 let type = process.argv[2]; // 取 gulp 命令后的下一个参数
 let newConf = {};
-let version; // 版本
+let version; // 总版本号
 let assetsPrefix; // assets 的版本路径，如 .../v1.0.0/...
 
 // 所有可用的环境
@@ -54,9 +54,6 @@ const publish_dir = path.resolve(__dirname, 'publish');
     Object.assign(newConf, config['common'] || {},
         config[type] || {});
 
-    // 设置图片路径
-    assetsPrefix = newConf.cdnUrl + newConf.uploadPath;
-
     // 初始化 version
     version = config.v;
     if (!version) {
@@ -64,6 +61,8 @@ const publish_dir = path.resolve(__dirname, 'publish');
         version = Math.round(now.getTime() / 1000 / 60);
     }
 
+    // 设置 assets 路径
+    assetsPrefix = newConf.cdnUrl + newConf.uploadPath;
     // 取得 assets 的版本路径
     const ignoreAssets = newConf.ignorePaths
         && newConf.ignorePaths.assets;
@@ -155,6 +154,7 @@ gulp.task('upload-assets', function () {
         }));
 });
 
+gulp.task('test:upload-assets', ['upload-assets']);
 gulp.task('stg:upload-assets', ['upload-assets']);
 gulp.task('prod:upload-assets', ['upload-assets']);
 gulp.task('qa:upload-assets', ['upload-assets']);
