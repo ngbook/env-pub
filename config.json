@@ -1,0 +1,53 @@
+{
+    "test": {
+        "cdnUrl": "http://ou2gp2r4n.bkt.clouddn.com/",
+        "ak": "xKzCfC_k6hj-7QN_wBwKiSigawkqutKmh280cH8-",
+        "sk": "wDiJw747BkWM_TuJtlr_1IQbf8RAeVYHsxr0rPGp",
+        "bk": "jtest",
+        "uploadPath": "ngtest/",
+        "htmlBasePath": "/",
+        "ignorePaths": {
+            "assets": "20171212"
+        }
+    },
+    "stg": {
+        "cdnUrl": "https://xxxxxx.bkt.clouddn.com/",
+        "ak": "IIVBbf5jSkJztYBmHh58G8IKjXlGo3P3U0lpgISN",
+        "sk": "CyWFD2tCfnnocqP16Js3IrOnYFW4m5ZXJsuWhmuk",
+        "bk": "stg-bk",
+        "uploadPath": "ngtest/",
+        "htmlBasePath": "/",
+        "ignorePaths": {
+            "assets": "20171212"
+        }
+    },
+    "prod": {
+        "cdnUrl": "https://xxxxxx.bkt.clouddn.com/",
+        "ak": "IIVBbf5jSkJztYBmHh58G8IKjXlGo3P3U0lpgISN",
+        "sk": "CyWFD2tCfnnocqP16Js3IrOnYFW4m5ZXJsuWhmuk",
+        "bk": "prod-bk",
+        "uploadPath": "ngtest/",
+        "htmlBasePath": "/",
+        "ignorePaths": {
+            "assets": "20171212"
+        }
+    },
+    "qa": {
+        "cdnUrl": "https://xxxxx.bkt.clouddn.com/",
+        "ak": "IIVBbf5jSkJztYBmHh58G8IKjXlGo3P3U0lpgISN",
+        "sk": "CyWFD2tCfnnocqP16Js3IrOnYFW4m5ZXJsuWhmuk",
+        "bk": "qa-bk",
+        "uploadPath": "ngtest/",
+        "htmlBasePath": "/",
+        "ignorePaths": {
+            "assets": "20171212"
+        }
+    },
+    "common": {
+        "uploadIgnore": [
+            "3rdpartylicenses.txt",
+            "**/*.html",
+            "assets/**"
+        ]
+    }
+}
