@@ -33,7 +33,7 @@ let assetsPrefix; // assets 的版本路径，如 .../v1.0.0/...
 // 所有可用的环境
 const envs = ['test', 'stg', 'prod', 'qa'];
 // 发布目录
-const publish_dir = path.resolve(__dirname, 'publish');
+const publishDir = path.resolve(__dirname, 'publish');
 // 初始化
 (function() {
     // 拆分如 prod:upload 这类的参数
@@ -72,9 +72,13 @@ const publish_dir = path.resolve(__dirname, 'publish');
         assetsPrefix += version + '/';
     }
 
-    // 设置发布目录
+})();
+console.log('当前环境配置：', newConf);
+
+// 初始化设置发布目录
+gulp.task('init-pub', function() {
     try { // 查看发布目录是否存在
-        fs.accessSync(publish_dir, fs.F_OK);
+        fs.accessSync(publishDir, fs.F_OK);
         console.log('Good! publish 发布目录存在！');
     } catch(e) { // 发布目录不存在
         // 取得发布用的 git 地址
@@ -83,26 +87,26 @@ const publish_dir = path.resolve(__dirname, 'publish');
             gitUrl = argv.git;
             console.log("publish git url：", gitUrl);
         } else {
-            console.error(colors.red('请提供用于存放发布代码的 git 地址，格式如：gulp test --git <git-url>'));
+            console.error(colors.red('请添加用于存放发布代码的 git 地址，格式如：gulp init-pub --git <git-url>'));
             process.exit(1);
         }
         console.error('publish 发布目录不存在，即将初始化...');
         // 创建发布目录
-        fs.mkdirSync(publish_dir, 0o755);
+        fs.mkdirSync(publishDir, 0o755);
         // 初始化发布目录的 git 地址
-        let cmd = 'cd ' + publish_dir
+        let cmd = 'cd ' + publishDir
             + ' && git init && git remote add origin ' + gitUrl;
         console.log('初始化 publish 目录完成');
         // console.log(cmd);
         execSync(cmd);
         try { // 尝试取这个分支的最新代码
-            execSync('cd ' + publish_dir
+            execSync('cd ' + publishDir
                 + ' && git fetch origin ' + type);
         } catch(ex) { // 线上目前没有这个分支
             // 创建新分支，并默认添加一个 README.md
-            cmd = 'cd ' + publish_dir
+            cmd = 'cd ' + publishDir
                 + ' && git checkout -b ' + type
-                + ' && echo "发布代码" > README.md'
+                + ' && wget https://github.com/ngbook/pub-tpl/archive/master.zip'
                 + ' && git add README.md && git commit -m "first commit"'
                 + ' && git push origin ' + type;
             console.log('创建新分支...', type);
@@ -110,8 +114,7 @@ const publish_dir = path.resolve(__dirname, 'publish');
             execSync(cmd);
         }
     }
-})();
-console.log('当前环境配置：', newConf);
+});
 
 // 相关资源的路径
 const PATHS = {
@@ -122,7 +125,7 @@ const PATHS = {
   上传 js 等七牛
 */
 gulp.task('upload', function () {
-    return gulp.src('./dist/**')
+    return gulp.src(publishDir + '/www/**')
         .pipe(qiniu({
             accessKey: newConf.ak,
             secretKey: newConf.sk,
@@ -136,6 +139,13 @@ gulp.task('upload', function () {
             concurrent: 10
         }));
 });
+
+// 分环境上传
+gulp.task('test:upload', ['upload']);
+gulp.task('stg:upload', ['upload']);
+gulp.task('prod:upload', ['upload']);
+gulp.task('qa:upload', ['upload']);
+
 /*
 上传资源
 */
@@ -172,10 +182,10 @@ gulp.task('replaceHtml', function () {
         // 替换 base
         .pipe(replace('<base href="/">',
             '<base href="' + newConf.htmlBasePath + '">'))
-        .pipe(gulp.dest(publish_dir));
+        .pipe(gulp.dest(publishDir + '/www'));
 });
 // 替换资源文件的路径
-gulp.task('replaceAssets', function () {
+gulp.task('replace-assets', function () {
     return gulp.src('./dist/*.js')
         // 替换双引号里的 assets 引用
         .pipe(replace('"/assets/', '"' + assetsPrefix + 'assets/'))
@@ -183,22 +193,16 @@ gulp.task('replaceAssets', function () {
         .pipe(replace('\'/assets/', '\'' + assetsPrefix + 'assets/'))
         // 替换背景图里的资源路径
         .pipe(replace('url(/assets/', 'url(' + assetsPrefix + 'assets/'))
-        .pipe(gulp.dest(publish_dir));
+        .pipe(gulp.dest(publishDir + '/www'));
 });
-gulp.task('replace', gulpSequence('replaceAssets', 'replaceHtml'));
-
-// 拷贝其余的资源
-gulp.task('prepare-publish', function () {
-    return gulp.src(PATHS.dist_files)
-        .pipe(gulp.dest('./publish/'));
-});
+gulp.task('replace', gulpSequence('replace-assets', 'replaceHtml'));
 
 // 发布目录中，自动切换到相应的分支并更新代码
-gulp.task('auto_git_checkout', function (callback) {
+gulp.task('auto-git-checkout', function (callback) {
     if (envs.indexOf(type) >= 0) {
         const cmd = 'git checkout ' + type + ' && git pull origin ' + type;
         exec(cmd, {
-            cwd: publish_dir
+            cwd: publishDir
         }, function (error, stdout, stderr) {
             if (error) {
                 console.log(colors.red.underline(error));
@@ -213,13 +217,13 @@ gulp.task('auto_git_checkout', function (callback) {
 });
 
 // 自动 git 提交本次编译的更新
-gulp.task('auto_git_commit', function (callback) {
+gulp.task('auto-git-commit', function (callback) {
     if (envs.indexOf(type) >= 0) {
         const cmd = 'git add --all && git commit -m "auto-'
             + type + '-commit-' + version + '" '
             + '&& git push origin ' + type
         exec(cmd, {
-            cwd: publish_dir
+            cwd: publishDir
         }, function (error, stdout, stderr) {
             if (error) {
                 console.log(colors.red.underline(error));
@@ -233,15 +237,9 @@ gulp.task('auto_git_commit', function (callback) {
     }
 });
 
-// 分环境上传
-gulp.task('test:upload', ['upload']);
-gulp.task('stg:upload', ['upload']);
-gulp.task('prod:upload', ['upload']);
-gulp.task('qa:upload', ['upload']);
-
 // 运行各个环境的发布操作
-gulp.task('test', gulpSequence('replace', 'auto_git_checkout', 'prepare-publish', 'auto_git_commit', 'upload'));
-gulp.task('stg', gulpSequence('replace', 'auto_git_checkout', 'prepare-publish', 'auto_git_commit', 'stg:upload'));
-gulp.task('prod', gulpSequence('replace', 'auto_git_checkout', 'prepare-publish', 'auto_git_commit', 'prod:upload'));
-gulp.task('qa', gulpSequence('replace', 'auto_git_checkout', 'prepare-publish', 'auto_git_commit', 'qa:upload'));
+gulp.task('test', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'test:upload'));
+gulp.task('stg', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'stg:upload'));
+gulp.task('prod', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'prod:upload'));
+gulp.task('qa', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'qa:upload'));
 // (以上把 upload 放到最后，是因为七牛的上传是异步的，gulpSequence 会误认为 upload 执行失败)
