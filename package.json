@@ -10,10 +10,14 @@
         "lint": "ng lint",
         "e2e": "ng e2e",
         "hmr": "ng serve --hmr -e=hmr --port=4400",
-        "build-test": "ng build --aot --build-optimizer -e=test && gulp test",
-        "build-qa": "ng build --aot --build-optimizer -e=qa && gulp qa",
-        "build-stg": "ng build --aot --build-optimizer -e=stg && gulp stg",
-        "build-prod": "ng build --aot --build-optimizer -e=prod && gulp prod"
+        "build-test": "ng build --aot --build-optimizer -e=test",
+        "build-qa": "ng build --aot --build-optimizer -e=qa",
+        "build-stg": "ng build --aot --build-optimizer -e=stg",
+        "build-prod": "ng build --aot --build-optimizer -e=prod",
+        "pub-test": "npm run build-test && gulp test",
+        "pub-qa": "npm run build-qa && gulp qa",
+        "pub-stg": "npm run build-stg && gulp stg",
+        "pub-prod": "npm run build-prod && gulp prod"
     },
     "private": true,
     "dependencies": {
