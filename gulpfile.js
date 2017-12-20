@@ -14,13 +14,12 @@ const gulp = require('gulp');
 const qiniu = require('gulp-qiniu');
 const replace = require('gulp-replace');
 const gulpSequence = require('gulp-sequence');
-const exec = require('child_process').exec;
+// const exec = require('child_process').exec;
 const execSync = require('child_process').execSync;
 const config = require('./config.json');
 const colors = require('colors');
 const path = require('path');
 const del = require('del');
-const readline = require('readline');
 const fs = require('fs');
 // 用于获取参数的插件
 const argv = require('yargs').argv;
@@ -37,7 +36,7 @@ const publishDir = path.resolve(__dirname, 'publish');
 // 初始化
 (function() {
     // 拆分如 prod:upload 这类的参数
-    if (type.indexOf(':') > -1) {
+    if (type && type.indexOf(':') > -1) {
         type = type.split(':')[0];
         if (config[type] === undefined) {
             type = 'test';
@@ -60,6 +59,7 @@ const publishDir = path.resolve(__dirname, 'publish');
         let now = new Date();
         version = Math.round(now.getTime() / 1000 / 60);
     }
+    console.log(colors.red('VERSION: ' + version));
 
     // 设置 assets 路径
     assetsPrefix = newConf.cdnUrl + newConf.uploadPath;
@@ -75,45 +75,74 @@ const publishDir = path.resolve(__dirname, 'publish');
 })();
 console.log('当前环境配置：', newConf);
 
+function exeCmd(cmd, opts) {
+    let options = null;
+    if (!opts || !opts.inCurDir) {
+        options = {
+            cwd: publishDir
+        };
+    }
+    const result = execSync(cmd, options);
+}
+
 // 初始化设置发布目录
-gulp.task('init-pub', function() {
+gulp.task('init-pub', function(callback) {
     try { // 查看发布目录是否存在
         fs.accessSync(publishDir, fs.F_OK);
         console.log('Good! publish 发布目录存在！');
     } catch(e) { // 发布目录不存在
-        // 取得发布用的 git 地址
-        let gitUrl;
-        if (argv.git) {
-            gitUrl = argv.git;
-            console.log("publish git url：", gitUrl);
-        } else {
-            console.error(colors.red('请添加用于存放发布代码的 git 地址，格式如：gulp init-pub --git <git-url>'));
-            process.exit(1);
+        console.log(colors.yellow('publish 发布目录不存在，即将初始化...'));
+        function addAllBranches() {
+            console.log(colors.yellow('拉取所有的发布分支'));
+            // 取出几个环境相应的分支
+            cmd = '';
+            envs.forEach((env) => {
+                cmd += 'git checkout -b ' + env + ' origin/' + env + ' && ';
+            });
+            cmd += 'git checkout ' + type;
+            console.log(cmd);
+            exeCmd(cmd);
         }
-        console.error('publish 发布目录不存在，即将初始化...');
-        // 创建发布目录
-        fs.mkdirSync(publishDir, 0o755);
-        // 初始化发布目录的 git 地址
-        let cmd = 'cd ' + publishDir
-            + ' && git init && git remote add origin ' + gitUrl;
-        console.log('初始化 publish 目录完成');
-        // console.log(cmd);
-        execSync(cmd);
-        try { // 尝试取这个分支的最新代码
-            execSync('cd ' + publishDir
-                + ' && git fetch origin ' + type);
-        } catch(ex) { // 线上目前没有这个分支
-            // 创建新分支，并默认添加一个 README.md
-            cmd = 'cd ' + publishDir
-                + ' && git checkout -b ' + type
-                + ' && wget https://github.com/ngbook/pub-tpl/archive/master.zip'
-                + ' && git add README.md && git commit -m "first commit"'
-                + ' && git push origin ' + type;
-            console.log('创建新分支...', type);
-            // console.log(cmd);
-            execSync(cmd);
+        // 取得发布用的 git 地址
+        if (argv.git) {
+            let gitUrl = argv.git;
+            console.log("发布代码地址：", gitUrl);
+            // 创建发布目录
+            fs.mkdirSync(publishDir, 0o755);
+
+            try { // 尝试取这个分支的最新代码
+                let cmd = 'git init && git remote add origin ' + gitUrl
+                    + ' && git fetch origin ' + type
+                    + ' && git checkout ' + type;
+                console.log(cmd);
+                exeCmd(cmd);
+                // addAllBranches();
+            } catch(ex) { // 线上目前没有这个分支
+                // 创建新分支，并默认添加一个 README.md
+                cmd = 'git checkout -b ' + type + ' master'
+                    + ' && git push --set-upstream origin ' + type;
+                console.log(colors.yellow('创建新分支...', type));
+                exeCmd(cmd);
+            }
+            console.log(colors.yellow('初始化 publish 目录完成'));
+        } else {
+            const sleep = require('system-sleep');
+            console.warn(colors.red(
+                '如果您已有发布代码，请在10秒内按下 ctrl + c 中止当前任务，\n并添加参数设置它的 git 地址，\n命令格式：gulp init-pub --git <git-url>'));
+            sleep(1 * 1000);
+            // 没有发布代码，此时拉一份模板代码下来
+            let cmd = 'git clone https://github.com/ngbook/pub-tpl.git '
+                + publishDir;
+            console.log(colors.yellow('开始拉取发布模板代码...', cmd));
+            exeCmd(cmd, {inCurDir: true}); // 在当前目录执行
+
+            addAllBranches();
+            cmd = 'git remote rm origin';
+            exeCmd(cmd);
+            console.log(colors.red('请稍候手动添加您自己的发布代码 git 地址'));
         }
     }
+    callback();
 });
 
 // 相关资源的路径
@@ -125,6 +154,7 @@ const PATHS = {
   上传 js 等七牛
 */
 gulp.task('upload', function () {
+    console.log(colors.yellow('CDN 访问地址：', newConf.cdnUrl));
     return gulp.src(publishDir + '/www/**')
         .pipe(qiniu({
             accessKey: newConf.ak,
@@ -139,12 +169,6 @@ gulp.task('upload', function () {
             concurrent: 10
         }));
 });
-
-// 分环境上传
-gulp.task('test:upload', ['upload']);
-gulp.task('stg:upload', ['upload']);
-gulp.task('prod:upload', ['upload']);
-gulp.task('qa:upload', ['upload']);
 
 /*
 上传资源
@@ -172,6 +196,7 @@ gulp.task('qa:upload-assets', ['upload-assets']);
 // 替换静态资源地址
 const pathPrefix = newConf.cdnUrl + newConf.uploadPath + version + '/';
 gulp.task('replaceHtml', function () {
+    console.log(colors.yellow('开始替换 index.html 里相关引用的地址'));
     return gulp.src('./dist/*.html')
         // 替换 assets 资源
         .pipe(replace('/assets/', assetsPrefix + 'assets/'))
@@ -186,6 +211,7 @@ gulp.task('replaceHtml', function () {
 });
 // 替换资源文件的路径
 gulp.task('replace-assets', function () {
+    console.log(colors.yellow('开始替换 assets 资源文件地址'));
     return gulp.src('./dist/*.js')
         // 替换双引号里的 assets 引用
         .pipe(replace('"/assets/', '"' + assetsPrefix + 'assets/'))
@@ -200,46 +226,45 @@ gulp.task('replace', gulpSequence('replace-assets', 'replaceHtml'));
 // 发布目录中，自动切换到相应的分支并更新代码
 gulp.task('auto-git-checkout', function (callback) {
     if (envs.indexOf(type) >= 0) {
-        const cmd = 'git checkout ' + type + ' && git pull origin ' + type;
-        exec(cmd, {
-            cwd: publishDir
-        }, function (error, stdout, stderr) {
-            if (error) {
-                console.log(colors.red.underline(error));
-            } else {
-                console.log(colors.yellow.underline('当前分支:' + type));
-                callback();
-            }
-        });
+        const cmd = 'git checkout ' + type;
+        exeCmd(cmd);
+        try {
+            console.log(colors.yellow('更新最新的' + type + '分支的发布代码'));
+            exeCmd('git pull origin ' + type);
+        } catch (ex) {
+            console.log(colors.yellow('忽略以上错误，稍候您手动添加发布代码的 git 地址后，错误会自动消失...'));
+        }
     } else {
-        console.log(colors.red.underline('参数错误'));
+        console.log(colors.red('参数错误'));
     }
+    callback();
 });
 
 // 自动 git 提交本次编译的更新
 gulp.task('auto-git-commit', function (callback) {
+    console.log(colors.yellow('开始提交代码...'));
     if (envs.indexOf(type) >= 0) {
         const cmd = 'git add --all && git commit -m "auto-'
             + type + '-commit-' + version + '" '
             + '&& git push origin ' + type
-        exec(cmd, {
-            cwd: publishDir
-        }, function (error, stdout, stderr) {
-            if (error) {
-                console.log(colors.red.underline(error));
-            } else {
-                console.log(colors.green('提交成功'));
-                callback()
-            }
-        })
+        try {
+            exeCmd(cmd);
+        } catch (ex) {
+            console.log(colors.yellow('忽略以上错误，稍候您手动添加发布代码的 git 地址后，错误会自动消失...'));
+        }
+        console.log(colors.green('提交成功'));
     } else {
-        console.log(colors.red.underline('参数错误'));
+        console.log(colors.red('参数错误'));
     }
+    callback();
 });
 
+// 执行的步骤，也是默认的执行任务（默认test环境）
+// 把upload放到最后，是因为七牛的上传是异步的，gulpSequence会误认为upload执行失败
+gulp.task('default', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'test:upload'));
+
 // 运行各个环境的发布操作
-gulp.task('test', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'test:upload'));
-gulp.task('stg', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'stg:upload'));
-gulp.task('prod', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'prod:upload'));
-gulp.task('qa', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'qa:upload'));
-// (以上把 upload 放到最后，是因为七牛的上传是异步的，gulpSequence 会误认为 upload 执行失败)
+gulp.task('test', ['default']);
+gulp.task('stg', ['default']);
+gulp.task('prod', , ['default']);
+gulp.task('qa', , ['default']);
