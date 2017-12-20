@@ -1,0 +1,53 @@
+{
+    "test": {
+        "cdnUrl": "http://xxxx.bkt.clouddn.com/",
+        "ak": "xxxx",
+        "sk": "xxxx",
+        "bk": "xxx",
+        "uploadPath": "ngtest/",
+        "htmlBasePath": "/",
+        "ignorePaths": {
+            "assets": "20171212"
+        }
+    },
+    "stg": {
+        "cdnUrl": "https://xxxxxx.bkt.clouddn.com/",
+        "ak": "xxxx",
+        "sk": "xxxx",
+        "bk": "xxx",
+        "uploadPath": "ngtest/",
+        "htmlBasePath": "/",
+        "ignorePaths": {
+            "assets": "20171212"
+        }
+    },
+    "prod": {
+        "cdnUrl": "https://xxxxxx.bkt.clouddn.com/",
+        "ak": "xxxx",
+        "sk": "xxxx",
+        "bk": "xxx",
+        "uploadPath": "ngtest/",
+        "htmlBasePath": "/",
+        "ignorePaths": {
+            "assets": "20171212"
+        }
+    },
+    "qa": {
+        "cdnUrl": "https://xxxxx.bkt.clouddn.com/",
+        "ak": "xxxx",
+        "sk": "xxxx",
+        "bk": "xxx",
+        "uploadPath": "ngtest/",
+        "htmlBasePath": "/",
+        "ignorePaths": {
+            "assets": "20171212"
+        }
+    },
+    "common": {
+        "uploadIgnore": [
+            "3rdpartylicenses.txt",
+            "**/*.html",
+            "assets/**"
+        ]
+    }
+}
