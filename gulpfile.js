@@ -129,7 +129,7 @@ gulp.task('init-pub', function(callback) {
             const sleep = require('system-sleep');
             console.warn(colors.red(
                 '如果您已有发布代码，请在10秒内按下 ctrl + c 中止当前任务，\n并添加参数设置它的 git 地址，\n命令格式：gulp init-pub --git <git-url>'));
-            sleep(1 * 1000);
+            sleep(10 * 1000);
             // 没有发布代码，此时拉一份模板代码下来
             let cmd = 'git clone https://github.com/ngbook/pub-tpl.git '
                 + publishDir;
@@ -261,10 +261,10 @@ gulp.task('auto-git-commit', function (callback) {
 
 // 执行的步骤，也是默认的执行任务（默认test环境）
 // 把upload放到最后，是因为七牛的上传是异步的，gulpSequence会误认为upload执行失败
-gulp.task('default', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'test:upload'));
+gulp.task('default', gulpSequence('init-pub', 'auto-git-checkout', 'replace', 'auto-git-commit', 'upload'));
 
 // 运行各个环境的发布操作
 gulp.task('test', ['default']);
 gulp.task('stg', ['default']);
-gulp.task('prod', , ['default']);
-gulp.task('qa', , ['default']);
+gulp.task('prod', ['default']);
+gulp.task('qa', ['default']);
