@@ -14,7 +14,6 @@ const gulp = require('gulp');
 const qiniu = require('gulp-qiniu');
 const replace = require('gulp-replace');
 const gulpSequence = require('gulp-sequence');
-// const exec = require('child_process').exec;
 const execSync = require('child_process').execSync;
 const config = require('./config.json');
 const colors = require('colors');
