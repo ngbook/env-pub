@@ -194,24 +194,24 @@ gulp.task('qa:upload-assets', ['upload-assets']);
 
 // 替换静态资源地址
 const pathPrefix = newConf.cdnUrl + newConf.uploadPath + version + '/';
-gulp.task('replaceHtml', function () {
+gulp.task('replacet-html', function () {
     console.log(colors.yellow('开始替换 index.html 里相关引用的地址'));
     return gulp.src('./dist/*.html')
         // 替换 assets 资源
         .pipe(replace('/assets/', assetsPrefix + 'assets/'))
         // 替换 css 资源
-        .pipe(replace('<link href="', '<link href="' + pathPrefix))
+        .pipe(replace('<link href="/' + config.fakePublicPath + '/', '<link href="' + pathPrefix))
         // 替换 js 资源
-        .pipe(replace('<script type="text/javascript" src="', '<script type="text/javascript" src="/public-path/' + pathPrefix))
+        .pipe(replace('<script type="text/javascript" src="/' + config.fakePublicPath + '/', '<script type="text/javascript" src="' + pathPrefix))
         // 替换 base
         .pipe(replace('<base href="/">',
             '<base href="' + newConf.htmlBasePath + '">'))
         .pipe(gulp.dest(publishDir + '/www'));
 });
 // 替换 js 里预先设置的标记，该操作是为了处理懒加载的 js 的路径问题
-gulp.task('replaceJs', function () {
+gulp.task('replace-js', function () {
     return gulp.src(['./dist/*.js', './dist/*.js.map'])
-        .pipe(replace('"/public-path/', '"' + pathPrefix))
+        .pipe(replace('/' + config.fakePublicPath + '/', pathPrefix))
         .pipe(gulp.dest('./dist/'));
 });
 // 替换资源文件的路径
@@ -226,7 +226,7 @@ gulp.task('replace-assets', function () {
         .pipe(replace('url(/assets/', 'url(' + assetsPrefix + 'assets/'))
         .pipe(gulp.dest(publishDir + '/www'));
 });
-gulp.task('replace', gulpSequence('replace-assets', 'replaceHtml'));
+gulp.task('replace', gulpSequence('replace-assets', 'replace-js', 'replace-html'));
 
 // 发布目录中，自动切换到相应的分支并更新代码
 gulp.task('auto-git-checkout', function (callback) {
