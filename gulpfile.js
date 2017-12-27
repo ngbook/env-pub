@@ -202,16 +202,22 @@ gulp.task('replaceHtml', function () {
         // 替换 css 资源
         .pipe(replace('<link href="', '<link href="' + pathPrefix))
         // 替换 js 资源
-        .pipe(replace('<script type="text/javascript" src="', '<script type="text/javascript" src="' + pathPrefix))
+        .pipe(replace('<script type="text/javascript" src="', '<script type="text/javascript" src="/public-path/' + pathPrefix))
         // 替换 base
         .pipe(replace('<base href="/">',
             '<base href="' + newConf.htmlBasePath + '">'))
         .pipe(gulp.dest(publishDir + '/www'));
 });
+// 替换 js 里预先设置的标记，该操作是为了处理懒加载的 js 的路径问题
+gulp.task('replaceJs', function () {
+    return gulp.src(['./dist/*.js', './dist/*.js.map'])
+        .pipe(replace('"/public-path/', '"' + pathPrefix))
+        .pipe(gulp.dest('./dist/'));
+});
 // 替换资源文件的路径
 gulp.task('replace-assets', function () {
     console.log(colors.yellow('开始替换 assets 资源文件地址'));
-    return gulp.src('./dist/*.js')
+    return gulp.src(['./dist/*.js', './dist/*.css'])
         // 替换双引号里的 assets 引用
         .pipe(replace('"/assets/', '"' + assetsPrefix + 'assets/'))
         // 替换单引号里的 assets 引用
