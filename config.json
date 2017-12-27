@@ -49,5 +49,6 @@
             "**/*.html",
             "assets/**"
         ]
-    }
+    },
+    "fakePublicPath": "public-path"
 }
